@@ -1,0 +1,3 @@
+/**
+*   yue-template
+*/
