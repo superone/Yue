@@ -1,3 +1,5 @@
 /node_modules
 /bin
+/src/.babelrc-bak
+/src/.babelrc
 .vscode
