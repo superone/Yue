@@ -2,15 +2,15 @@ import { initName } from "./classproname";
 
 export default function(){
 
-    function fn ( options ){
-       let o = options || {};
+    function fn ( props ){
+       let o = props || {};
        let initFn = function(){};
    
        if( this instanceof fn ){
            //new
            initFn = o['init'] ? o['init'] : initFn;
            //init the object
-           fn.prototype[initName].call( this , options , fn );
+           fn.prototype[initName].call( this , props , fn );
            initFn.apply( this , arguments );
    
        }else{

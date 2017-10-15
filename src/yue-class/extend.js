@@ -1,5 +1,6 @@
 import Constructor from "./constructor";
 import Prototype from "./prototype";
+import Flugin from "./flugin/flugin";
 import { inArr , resOptKey } from "./util";
 import { getSpecifier , applySpecifier } from "./specifier/specifier";
 import { optionsName , superName } from "./classproname";
@@ -17,14 +18,15 @@ function applyStatic( Cls ){
     }
 }
 
-const extend = function( options ){
-    options = options || {};
+const extend = function( props ){
+    props = props || {};
     var prototype = Prototype();
     
     var Class = Constructor();
 
     Class.extend = extend;
-    Class[ optionsName ] = options;
+    Class.flugin = Flugin;
+    Class[ optionsName ] = props;
     Class[ optionsName ][superName] = this;
 
     applyStatic( Class );

@@ -15,7 +15,23 @@ export function toString (val) {
   }
 
 
-  export function inArr( v , arr ){
+  export function error ( msg , code ){
+    let txt = ['Error:', msg ];
+    if( code ){
+        txt.push( ['\n','CODE:',code].join(' ') );
+    }
+    console.log( txt );
+}
+
+export function warn( msg , code ){
+    let txt = ['Warning:', msg ];
+    if( code ){
+        txt.push( ['\n','CODE:',code].join(' ') );
+    }
+    console.log( txt );
+}
+
+export function inArr( v , arr ){
     arr = arr || [];
 
     for(let i in arr){
@@ -119,6 +135,8 @@ const util = {
     toString,
     inArr,
     resOptKey,
+    error,
+    warn,
 
     clone,
     mergeObject,

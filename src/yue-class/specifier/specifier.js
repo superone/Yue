@@ -4,6 +4,7 @@ import Univer from "./specs/univer";
 import Static from "./specs/static";
 import Private from "./specs/private";
 import Void from "./specs/void";
+import Resolve from "./resolve/index";
 
 const specifiers = {
     "Public" : Univer,
@@ -18,9 +19,10 @@ export function getSpecifier( str ){
 };
 
 export function applySpecifier( keyStr , object , own ){
-    let resKey = util.resOptKey( keyStr );
-    let objName = resKey[ resKey.length-1 ];
+    let resKey = Resolve( keyStr , object );//util.resOptKey( keyStr );
+    let objName = resKey.name;
 
+    
     for( let i in resKey ){
         //如果定义指令
         if( i< resKey.length-1 ){
@@ -35,4 +37,8 @@ export function applySpecifier( keyStr , object , own ){
             own[ objName ] = object;
         }
     }
+}
+
+export function installation(){
+
 }
