@@ -6,7 +6,7 @@
 
 const propsName = "__class_props__";
 const optionsName = "__class_options__";
-const initName = "__init__";
+const initName = "__class_init__";
 const superName = "__class_super__";
 var clsNames = {
     propsName,
@@ -17,15 +17,15 @@ var clsNames = {
 
 var Constructor = function () {
 
-    function fn(options) {
-        let o = options || {};
+    function fn(props) {
+        let o = props || {};
         let initFn = function () {};
 
         if (this instanceof fn) {
             //new
             initFn = o['init'] ? o['init'] : initFn;
             //init the object
-            fn.prototype[initName].call(this, options, fn);
+            fn.prototype[initName].call(this, props, fn);
             initFn.apply(this, arguments);
         } else {
             //extend
@@ -46,6 +46,22 @@ function toNumber(val) {
 
 function toString(val) {
     return val == null ? '' : typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val);
+}
+
+function error(msg, code) {
+    let txt = ['Error:', msg];
+    if (code) {
+        txt.push(['\n', 'CODE:', code].join(' '));
+    }
+    console.log(txt);
+}
+
+function warn(msg, code) {
+    let txt = ['Warning:', msg];
+    if (code) {
+        txt.push(['\n', 'CODE:', code].join(' '));
+    }
+    console.log(txt);
 }
 
 function inArr(v, arr) {
@@ -153,6 +169,8 @@ const util = {
     toString,
     inArr,
     resOptKey,
+    error,
+    warn,
 
     clone,
     mergeObject,
@@ -191,13 +209,17 @@ var Private = function (name, obj, own, tools) {
             _props_[name] = {
                 target: obj,
                 type: tools.util.getType(obj),
-                specis: tools.util.resOptKey(oriName)
+                specis: tools.util.resOptKey(oriName),
+                scope: own
             };
         }
 
         tools.util._definedPros(own, name, {
             get() {
-                return this[propsName][name].target;
+                return () => {
+                    let scope = this[propsName][name].scope ? this[propsName][name].scope : own;
+                    this[propsName][name].target.applay(scope, arguments);
+                };
             }
         });
     }
@@ -212,6 +234,54 @@ var Void = function (name, obj, own, util) {
     return own;
 };
 
+var result = (function () {
+    return {};
+})();
+
+/*
+* key , value
+* return object for resolve the specifiers
+*/
+function resOpt(key, value) {
+
+    let resed = util.resOptKey(key);
+    let opt = result;
+
+    let nameIndex = resed.length - 1;
+    let name = resed[nameIndex]; //option name
+    let injects = []; //inject list
+    let reg = /^\(.+\)$/; //name()
+    name = name.trim();
+
+    if (!name) {
+        util.error(["Can't find the Name!", key].join(' '));
+        return;
+    }
+
+    if (reg.test(name)) {
+        injects = reg.exec(name);
+        injects = injects.length > 1 ? injects[1].trim() : "";
+        injects = injects.replace(" ", "");
+        injects = injects.split(",");
+
+        name = resed[--nameIndex].trim();
+    }
+
+    opt.value = value;
+    opt.key = key;
+    opt.name = name;
+    opt.injects = injects;
+
+    opt.type = util.getType(value);
+    opt.res = resed;
+    opt.private = util.inArr('Private', resed);
+    opt.const = util.inArr('Const', resed);
+    opt.overwrite = util.inArr('Overwrite', resed);
+    opt.static = util.inArr('Static', resed);
+
+    return opt;
+}
+
 const specifiers = {
     "Public": Univer,
     "Static": Static,
@@ -225,8 +295,8 @@ function getSpecifier(str) {
 }
 
 function applySpecifier(keyStr, object, own) {
-    let resKey = util.resOptKey(keyStr);
-    let objName = resKey[resKey.length - 1];
+    let resKey = resOpt(keyStr, object); //util.resOptKey( keyStr );
+    let objName = resKey.name;
 
     for (let i in resKey) {
         //如果定义指令
@@ -261,6 +331,15 @@ const prototype = function () {
     return o;
 };
 
+const flugin = function () {
+    return function (o) {
+        let own = this;
+        own.prototype.flugin = own.prototype.flugin || {};
+        console.log(own);
+        console.log(o);
+    };
+}();
+
 function applyStatic(Cls) {
     let opt = Cls[optionsName] || {};
     let tmp;
@@ -273,14 +352,15 @@ function applyStatic(Cls) {
     }
 }
 
-const extend = function (options) {
-    options = options || {};
+const extend = function (props) {
+    props = props || {};
     var prototype$$1 = prototype();
 
     var Class = Constructor();
 
     Class.extend = extend;
-    Class[optionsName] = options;
+    Class.flugin = flugin;
+    Class[optionsName] = props;
     Class[optionsName][superName] = this;
 
     applyStatic(Class);
@@ -293,6 +373,7 @@ const extend = function (options) {
 
 let Class$1 = Constructor();
 Class$1.extend = extend;
+Class$1.flugin = flugin;
 Class$1.prototype = prototype();
 Class$1.prototype.constructor = Class$1;
 
