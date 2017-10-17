@@ -1,6 +1,6 @@
 import { applySpecifier } from "./specifier/specifier";
 import { mergeObject } from "./util";
-import { propsName , initName , optionsName} from "./classproname";
+import { propsName , initName , optionsName } from "./classproname";
 
 function init( options , Cls ){
     if( !Cls ){

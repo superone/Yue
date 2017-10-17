@@ -183,42 +183,65 @@ const util = {
     _definedPros
 };
 
-var Univer = function (name, obj, own, util) {
+var Univer = function (prm, isBase, tools) {
+    // let name = prm.name;
+    let own = prm.own;
 
-    own[name] = obj;
+    // own[name] = obj;
 
     return own;
 };
 
-var Static = function (name, obj, own, util) {
+var Static = function (prm, isBase, tools) {
+    let name = prm.name;
+    let obj = prm.obj;
+    let own = prm.own;
 
     own[name] = obj;
 
     return obj;
 };
 
-var Private = function (name, obj, own, tools) {
+var Public = function (prm, isBase, tools) {
+    // let name = prm.name;
+    let obj = prm.obj;
+    return obj;
+};
+
+var Private = function (prm, isBase, tools) {
+    let name = prm.name;
+    let obj = prm.obj;
+    let own = prm.own;
+    let res = prm.resKey;
     //own[ name ] = obj;
-    let propsName = tools.clsNames.propsName;
-    let _props_ = own[propsName];
-
     if (tools.util.isFunction(obj)) {
-        let oriName = obj.name;
+        let opt = {
+            target: obj,
+            type: tools.util.getType(obj),
+            res: res,
+            scope: own,
+            args: []
+        };
 
-        if (!_props_[name]) {
-            _props_[name] = {
-                target: obj,
-                type: tools.util.getType(obj),
-                specis: tools.util.resOptKey(oriName),
-                scope: own
-            };
-        }
+        let fn = getMethod(opt);
 
         tools.util._definedPros(own, name, {
             get() {
                 return () => {
-                    let scope = this[propsName][name].scope ? this[propsName][name].scope : own;
-                    this[propsName][name].target.applay(scope, arguments);
+
+                    let fnArgs = Array.prototype.slice.call(arguments, 0);
+                    for (let i = 0, len = opt.args.length; i < len; i++) {
+                        if (typeof fnArgs[i] === 'undefined') {
+                            fnArgs[i] = undefined;
+                        }
+                    }
+
+                    fnArgs.push(function () {
+                        console.log('this is super');
+                    });
+                    fnArgs.push("This is fnBody-txt");
+
+                    fn.apply(opt.scope, fnArgs);
                 };
             }
         });
@@ -227,9 +250,47 @@ var Private = function (name, obj, own, tools) {
     return obj;
 };
 
-var Void = function (name, obj, own, util) {
+function getMethod(opt) {
 
-    own[name] = obj;
+    let target = opt,
+        tmpStr = "";
+    let fn = target.target;
+    let fnStr = fn.toString(),
+        fnBody = "",
+        args = [];
+    let reg = /(?:\/\*[\s\S]*?\*\/|\/\/.*?\r?\n|[^{])+\{([\s\S]*)\}$/;
+    let regP = /^function\s*[^\(]*\(\s*([^\)]*)\)/m;
+    args = fnStr.match(regP)[1].replace(/\s/g, '').split(',');
+    let i = args.length;
+
+    while (i--) {
+        if (args[i] === "") args.splice(i, 1);
+    }
+    args = args.map(function (v) {
+        return v ? ['\'', v, '\''].join('') : v;
+    });
+    opt.args = args.map(function (v) {
+        return v;
+    });
+
+    args.push('\'Super\'');
+    if (reg.test(fnStr)) {
+        fnBody = reg.exec(fnStr)[1];
+        fnBody += ";console.log('this is new fnBody');";
+        fnBody += "console.log(fnBody);";
+
+        tmpStr = ["new Function(", args.toString() ? args.toString() + ',' : "", "'fnBody',fnBody)"].join('');
+        fn = eval(tmpStr); // new Function('Super' , 'fnBody' , fnBody );
+    }
+
+    return fn;
+}
+
+var Void = function (prm, isBase, tools) {
+    // let name = prm.name;
+    let own = prm.own;
+
+    // own[name] = obj;
 
     return own;
 };
@@ -247,30 +308,21 @@ function resOpt(key, value) {
     let resed = util.resOptKey(key);
     let opt = result;
 
-    let nameIndex = resed.length - 1;
-    let name = resed[nameIndex]; //option name
-    let injects = []; //inject list
-    let reg = /^\(.+\)$/; //name()
-    name = name.trim();
-
-    if (!name) {
-        util.error(["Can't find the Name!", key].join(' '));
-        return;
-    }
-
-    if (reg.test(name)) {
-        injects = reg.exec(name);
-        injects = injects.length > 1 ? injects[1].trim() : "";
-        injects = injects.replace(" ", "");
-        injects = injects.split(",");
-
-        name = resed[--nameIndex].trim();
-    }
+    let names = getNames(resed);
 
     opt.value = value;
     opt.key = key;
-    opt.name = name;
-    opt.injects = injects;
+    opt.name = names.name; // opt name
+    opt.injects = names.injects; // injects
+    opt.retype = names.returnTp; //return types
+    opt.specs = names.specs; //specifiers
+
+    if (opt.specs.length > 0) {
+        //If have not base speci
+        if (!util.inArr(opt.specs[0], specifiers.base)) {
+            opt.specs.splice(0, 0, 'Public');
+        }
+    } else opt.specs.push('Public');
 
     opt.type = util.getType(value);
     opt.res = resed;
@@ -282,30 +334,99 @@ function resOpt(key, value) {
     return opt;
 }
 
-const specifiers = {
-    "Public": Univer,
-    "Static": Static,
-    "Event": Univer,
+function getNames(resed) {
+    let reg = /^\(.+\)$/; //name()
+    let regR = /^[^\(\)\s]+\([^\(\)]+\)$/; //name()
+    let regA = /^\((.+)\)([a-z|A-Z|_|$|\d]+)\((.+)\)$/; //(return types)name(injects)
+    let nameIndex = resed.length - 1;
+
+    let name = resed[nameIndex];
+    let ret = {
+        name: "",
+        injects: [],
+        returnTp: [],
+        specs: []
+    };
+
+    name = name.trim();
+
+    while (!regA.test(name)) {
+        if (reg.test(name)) {
+            name = resed[--nameIndex] + name;
+        } else if (regR.test(name)) {
+            //name = resed[ nameIndex-1 ] + name ;
+            if (!regA.test(resed[nameIndex - 1] + name)) {
+                name = ['( )', name].join('');
+            } else {
+                name = resed[nameIndex - 1] + name;
+            }
+        } else {
+            name = ['( )', name, '( )'].join('');
+        }
+    }
+
+    let r = regA.exec(name);
+    ret.name = r[2].trim();
+    ret.injects = r[3].trim() ? r[3].trim().split(',') : [];
+    ret.returnTp = r[1].trim() ? r[1].trim().split('|') : [];
+
+    ret.specs = Array.prototype.slice.call(resed, 0, nameIndex);
+
+    return ret;
+}
+
+let Protected;
+let Overwrite;
+
+var specifiers = {
+    "Public": Public,
     "Private": Private,
-    "Void": Void
+    "Static": Static,
+    "Protected": Protected || Univer,
+    "Override": Overwrite || Univer,
+    'Univer': Univer,
+    "Const": Void,
+    "base": ['Public', 'Private', 'Static', 'Protected'],
+    "baseEx": ['Const', 'Override'],
+
+    done(resKey, opt) {
+
+        let specs = resKey.specs;
+        let name = resKey.name;
+        let obj = resKey.value;
+
+        for (let i in specs) {
+            let handle = util.isFunction(this[specs[i]]) ? this[specs[i]] : this['Univer'];
+
+            handle({
+                own: opt.own,
+                name,
+                obj,
+                resKey
+            }, i == 0, { util, clsNames });
+        }
+
+        return this;
+    },
+
+    add(key, handle) {
+        if (!this[key]) {
+            this[key] = handle;
+        }
+    }
 };
 
-function getSpecifier(str) {
-    return typeof specifiers[str] === "function" ? specifiers[str] : Univer;
-}
+
 
 function applySpecifier(keyStr, object, own) {
     let resKey = resOpt(keyStr, object); //util.resOptKey( keyStr );
-    let objName = resKey.name;
+    let spec = specifiers;
+    //应用specifiers 
 
-    for (let i in resKey) {
-        //如果定义指令
-        if (i < resKey.length - 1) {
-            getSpecifier(resKey[i]).call(own, objName, object, own, { util, clsNames });
-        } else if (i == 0) {
-            own[objName] = object;
-        }
-    }
+    spec.done(resKey, {
+        own,
+        object
+    });
 }
 
 function init(options, Cls) {
