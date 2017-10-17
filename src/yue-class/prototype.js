@@ -14,7 +14,7 @@ function init( options , Cls ){
     this[ propsName ] = {};
     for( let key in newOptions ){
         if( newOptions.hasOwnProperty(key) ){
-            applySpecifier( key , newOptions[key] , this );
+            applySpecifier( key , newOptions[key] , this , Cls/*class*/);
         }
     }
 

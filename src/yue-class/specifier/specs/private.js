@@ -3,9 +3,11 @@ export default function( prm , isBase ,tools ){
     let obj = prm.obj;
     let own = prm.own;
     let res = prm.resKey;
+    let Cls = prm.cls;
     //own[ name ] = obj;
-    let propsName  = tools.clsNames.propsName;
-    let _props_ = own[ propsName ];
+    
+    let optionName = tools.clsNames.optionsName;
+    let superName = tools.clsNames.superName;
 
     if( tools.util.isFunction(obj) ){
         let oriName = obj.name;
@@ -15,36 +17,44 @@ export default function( prm , isBase ,tools ){
             type : tools.util.getType( obj ),
             res : res ,
             scope : own,
-            args : []
+            args : [],
+            Cls
         };
 
-        let fn = getMethod( opt );
+        let fn = createMethod( opt );
+        let inj = [];
+        let Super = /*opt.Cls[ optionName ] && opt.Cls[ optionName ][ superName ] ||*/ function(){ console.log('Im Super.') };
+        inj = inj.concat( res.injects );
+        inj = inj.concat([Super]);
 
         tools.util._definedPros( own , name , {
             get(){
-                return ()=>{
+                return function(){
                     //create arguments
                     let fnArgs = Array.prototype.slice.call(arguments , 0);
-                    let argLength = fnArgs.length;
-                    for(let i=0 , len= opt.args.length; i<len; i++){
+                    opt.args.forEach( ( v , i )=>{ 
                         if(typeof fnArgs[i] === 'undefined'){
                             fnArgs[i] = undefined;
                         }
-                    }
+                     });
 
-                    fnArgs.push( function(){console.log('this is super')} );
-                    fnArgs.push("This is fnBody-txt");
-
+                    fnArgs = fnArgs.concat( inj );
                     fn.apply( opt.scope , fnArgs );
                 }
             }
         });
+    }else{
+        own[ name ] = obj;
     }
 
     return obj;
 }
 
-function getMethod( opt ){
+/**
+ * 
+ * 返回方法句柄 
+ */
+function createMethod( opt ){
 
     let target = opt , tmpStr="";
     let scope = target.scope ;
@@ -59,22 +69,21 @@ function getMethod( opt ){
     while(i--){
         if( args[i] === "")
         args.splice(i,1);
-        
     }
+
     args = args.map(function( v ){
         return v ? ['\'' , v , '\''].join('') : v;
     });
+
     opt.args = args.map(function(v){return v;});
 
     args.push('\'Super\'');
     if( reg.test(fnStr) ){
         fnBody = reg.exec(fnStr)[1];
-        fnBody += ";console.log('this is new fnBody');";
-        fnBody += "console.log(fnBody);";
-
-        tmpStr = ["new Function(", (args.toString() ? args.toString()+',' : "") , "'fnBody',fnBody)"].join('');
-        fn = eval(tmpStr);// new Function('Super' , 'fnBody' , fnBody );
+        tmpStr = ["new Function(", (args.toString() ? args.toString()+',' : "") , "fnBody)"].join('');
+        fn = eval(tmpStr);  // new Function('Super' , 'fnBody' , fnBody );
     }
 
     return fn;
+
 }

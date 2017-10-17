@@ -213,43 +213,54 @@ var Private = function (prm, isBase, tools) {
     let obj = prm.obj;
     let own = prm.own;
     let res = prm.resKey;
+    let Cls = prm.cls;
     //own[ name ] = obj;
+
     if (tools.util.isFunction(obj)) {
         let opt = {
             target: obj,
             type: tools.util.getType(obj),
             res: res,
             scope: own,
-            args: []
+            args: [],
+            Cls
         };
 
         let fn = getMethod(opt);
+        let inj = [];
+        let Super = /*opt.Cls[ optionName ] && opt.Cls[ optionName ][ superName ] ||*/function () {
+            console.log('Im Super.');
+        };
+        inj = inj.concat(res.injects);
+        inj = inj.concat([Super]);
 
         tools.util._definedPros(own, name, {
             get() {
-                return () => {
-
+                return function () {
+                    //create arguments
                     let fnArgs = Array.prototype.slice.call(arguments, 0);
-                    for (let i = 0, len = opt.args.length; i < len; i++) {
+                    opt.args.forEach((v, i) => {
                         if (typeof fnArgs[i] === 'undefined') {
                             fnArgs[i] = undefined;
                         }
-                    }
-
-                    fnArgs.push(function () {
-                        console.log('this is super');
                     });
-                    fnArgs.push("This is fnBody-txt");
 
+                    fnArgs = fnArgs.concat(inj);
                     fn.apply(opt.scope, fnArgs);
                 };
             }
         });
+    } else {
+        own[name] = obj;
     }
 
     return obj;
 };
 
+/**
+ * 
+ * 返回方法句柄 
+ */
 function getMethod(opt) {
 
     let target = opt,
@@ -266,9 +277,11 @@ function getMethod(opt) {
     while (i--) {
         if (args[i] === "") args.splice(i, 1);
     }
+
     args = args.map(function (v) {
         return v ? ['\'', v, '\''].join('') : v;
     });
+
     opt.args = args.map(function (v) {
         return v;
     });
@@ -276,10 +289,7 @@ function getMethod(opt) {
     args.push('\'Super\'');
     if (reg.test(fnStr)) {
         fnBody = reg.exec(fnStr)[1];
-        fnBody += ";console.log('this is new fnBody');";
-        fnBody += "console.log(fnBody);";
-
-        tmpStr = ["new Function(", args.toString() ? args.toString() + ',' : "", "'fnBody',fnBody)"].join('');
+        tmpStr = ["new Function(", args.toString() ? args.toString() + ',' : "", "fnBody)"].join('');
         fn = eval(tmpStr); // new Function('Super' , 'fnBody' , fnBody );
     }
 
@@ -394,6 +404,7 @@ var specifiers = {
         let specs = resKey.specs;
         let name = resKey.name;
         let obj = resKey.value;
+        let cls = opt.Cls;
 
         for (let i in specs) {
             let handle = util.isFunction(this[specs[i]]) ? this[specs[i]] : this['Univer'];
@@ -402,7 +413,8 @@ var specifiers = {
                 own: opt.own,
                 name,
                 obj,
-                resKey
+                resKey,
+                cls
             }, i == 0, { util, clsNames });
         }
 
@@ -418,14 +430,15 @@ var specifiers = {
 
 
 
-function applySpecifier(keyStr, object, own) {
+function applySpecifier(keyStr, object, own, Cls) {
     let resKey = resOpt(keyStr, object); //util.resOptKey( keyStr );
     let spec = specifiers;
-    //应用specifiers 
 
+    //应用specifiers
     spec.done(resKey, {
         own,
-        object
+        object,
+        Cls
     });
 }
 
@@ -441,7 +454,7 @@ function init(options, Cls) {
     this[propsName] = {};
     for (let key in newOptions) {
         if (newOptions.hasOwnProperty(key)) {
-            applySpecifier(key, newOptions[key], this);
+            applySpecifier(key, newOptions[key], this, Cls /*class*/);
         }
     }
 }

@@ -25,6 +25,7 @@ export var specifiers = {
         let specs = resKey.specs;
         let name = resKey.name;
         let obj = resKey.value;
+        let cls = opt.Cls;
 
         for(let i in specs){
             let handle = util.isFunction( this[ specs[i] ] ) ? 
@@ -36,7 +37,8 @@ export var specifiers = {
                     own : opt.own , 
                     name , 
                     obj ,
-                    resKey
+                    resKey,
+                    cls
                 }, 
                 i == 0,
                 { util , clsNames } 
@@ -57,15 +59,16 @@ export function getSpecifier( str ){
     return typeof specifiers[str] === "function" ? specifiers[str] : Univer;
 };
 
-export function applySpecifier( keyStr , object , own ){
+export function applySpecifier( keyStr , object , own , Cls){
     let resKey = Resolve( keyStr , object );//util.resOptKey( keyStr );
     let objName = resKey.name;
     let spec = specifiers;
-    //应用specifiers 
 
+    //应用specifiers
     spec.done( resKey , {
         own,
-        object
+        object,
+        Cls
     });
 }
 
