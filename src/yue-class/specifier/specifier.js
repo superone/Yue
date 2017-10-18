@@ -14,7 +14,7 @@ export var specifiers = {
     "Private" : Private,
     "Static" : Static,
     "Protected" : Protected || Univer,
-    "Override": Overwrite || Univer, 
+    "Override": Overwrite || Univer,
     'Univer': Univer,
     "Const" : Void,
     "base" : ['Public','Private','Static','Protected'],
@@ -41,7 +41,7 @@ export var specifiers = {
                     cls
                 }, 
                 i == 0,
-                { util , clsNames } 
+                { util , clsNames }
             );
         }
         

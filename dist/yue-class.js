@@ -226,28 +226,45 @@ var Private = function (prm, isBase, tools) {
             Cls
         };
 
-        let fn = getMethod(opt);
+        let fn = createMethod(opt);
         let inj = [];
-        let Super = /*opt.Cls[ optionName ] && opt.Cls[ optionName ][ superName ] ||*/function () {
-            console.log('Im Super.');
-        };
+
+        //let Super = function(){};/*opt.Cls[ optionName ] && opt.Cls[ optionName ][ superName ] ||*/
+
         inj = inj.concat(res.injects);
-        inj = inj.concat([Super]);
+        //inj = inj.concat([Super]);
+
+        function fnInjects(Arguments) {
+
+            let Super = function () {
+                return function () {
+                    console.log('Im Super.');
+                    console.log(this);
+                }.apply(own, Arguments);
+            };
+
+            let args = inj.concat(res.injects);
+            args.push(Super);
+
+            let fnArgs = Array.prototype.slice.call(Arguments, 0);
+
+            opt.args.forEach((v, i) => {
+                fnArgs[i] = typeof fnArgs[i] === 'undefined' ? undefined : fnArgs[i];
+            });
+
+            fnArgs = fnArgs.slice(0, opt.args.length);
+            fnArgs = fnArgs.concat(args);
+            return fnArgs;
+        }
 
         tools.util._definedPros(own, name, {
             get() {
                 return function () {
-                    //create arguments
-                    let fnArgs = Array.prototype.slice.call(arguments, 0);
-                    opt.args.forEach((v, i) => {
-                        if (typeof fnArgs[i] === 'undefined') {
-                            fnArgs[i] = undefined;
-                        }
-                    });
-
-                    fnArgs = fnArgs.concat(inj);
-                    fn.apply(opt.scope, fnArgs);
+                    return fn.apply(opt.scope, fnInjects(arguments));
                 };
+            },
+            set() {
+                console.warn("Can't set method!");
             }
         });
     } else {
@@ -261,7 +278,7 @@ var Private = function (prm, isBase, tools) {
  * 
  * 返回方法句柄 
  */
-function getMethod(opt) {
+function createMethod(opt) {
 
     let target = opt,
         tmpStr = "";
