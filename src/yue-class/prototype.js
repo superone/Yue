@@ -1,6 +1,6 @@
 import { applySpecifier } from "./specifier/specifier";
 import { mergeObject } from "./util";
-import { propsName , initName , optionsName} from "./classproname";
+import { propsName , initName , optionsName } from "./classproname";
 
 function init( options , Cls ){
     if( !Cls ){
@@ -14,7 +14,7 @@ function init( options , Cls ){
     this[ propsName ] = {};
     for( let key in newOptions ){
         if( newOptions.hasOwnProperty(key) ){
-            applySpecifier( key , newOptions[key] , this );
+            applySpecifier( key , newOptions[key] , this , Cls/*class*/);
         }
     }
 

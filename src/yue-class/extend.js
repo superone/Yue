@@ -7,7 +7,7 @@ import { optionsName , superName } from "./classproname";
 
 
 function applyStatic( Cls ){
-    let opt = Cls[ optionsName ] || {} ;
+    let opt = Cls[ optionsName ] || {};
     let tmp;
 
     for(let key in opt ){
@@ -27,7 +27,7 @@ const extend = function( props ){
     Class.extend = extend;
     Class.flugin = Flugin;
     Class[ optionsName ] = props;
-    Class[ optionsName ][superName] = this;
+    Class[ optionsName ][ superName ] = this;
 
     applyStatic( Class );
 

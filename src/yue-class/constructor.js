@@ -1,7 +1,7 @@
 import { initName } from "./classproname";
 
 export default function(){
-
+    
     function fn ( props ){
        let o = props || {};
        let initFn = function(){};
@@ -12,7 +12,6 @@ export default function(){
            //init the object
            fn.prototype[initName].call( this , props , fn );
            initFn.apply( this , arguments );
-   
        }else{
            //extend
            return fn.extend( o );

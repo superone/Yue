@@ -3,7 +3,7 @@ export default function( prm , isBase ,tools){
     let obj = prm.obj;
     let own = prm.own;
 
-    // own[name] = obj;
-    
-    return own;
+    // own[ name ] = obj;
+
+    return obj;
 }

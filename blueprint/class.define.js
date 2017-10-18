@@ -41,7 +41,6 @@ var subClass = Class.extend({
         console.log(['This is config options :' , 
                     JSON.stringify(conf) , '' ].join(''));
 
-
     },
 
     "Static showMessage( _ )" : function( _ ){
