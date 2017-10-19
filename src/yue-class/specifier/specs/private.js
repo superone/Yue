@@ -40,6 +40,7 @@ export default function( prm , isBase ,tools ){
 
             let args = inj.concat( res.injects );
             args.push(Super);
+            args.push(Arguments);
 
             let fnArgs = Array.prototype.slice.call( Arguments , 0 );
 
@@ -50,6 +51,7 @@ export default function( prm , isBase ,tools ){
              fnArgs = fnArgs.slice(0 , opt.args.length);
              fnArgs = fnArgs.concat( args );
              return fnArgs;
+
         }
 
         tools.util._definedPros( own , name , {
@@ -57,10 +59,11 @@ export default function( prm , isBase ,tools ){
                 return function(){
                     return fn.apply( opt.scope , fnInjects( arguments ) );
                 }
-            },
-            set(){
-                console.warn("Can't set method!");
             }
+            // ,
+            // set(){
+            //     console.warn("Can't set method!");
+            // }
         });
 
     }else{
@@ -80,9 +83,17 @@ function createMethod( opt ){
     let scope = target.scope ;
 
     let fn = target.target , fnArgs;
-    let fnStr = fn.toString() , fnBody="" , args = [];
-    let reg =  /(?:\/\*[\s\S]*?\*\/|\/\/.*?\r?\n|[^{])+\{([\s\S]*)\}$/;
+    let fnStr = fn.toString().trim() , fnBody="" , args = [];
+    //如果不是以匿名方式定义
+    if( fnStr.substring(0, 8) != 'function' ){
+        fnStr = 'function' + fnStr.substring(fn.name.length);
+    }
+
+    let reg = /(?:\/\*[\s\S]*?\*\/|\/\/.*?\r?\n|[^{])+\{([\s\S]*)\}$/;
     let regP = /^function\s*[^\(]*\(\s*([^\)]*)\)/m;
+    // if( !regP.test(fnStr) ){
+    //     regP = new RegExp(["^",fn.name,'\s*[^\(]*\(\s*([^\)]*)\)'].join('') , 'm');
+    // }
     args = fnStr.match( regP )[1].replace(/\s/g, '').split(',');
     let i = args.length;
 
@@ -91,17 +102,20 @@ function createMethod( opt ){
         args.splice(i,1);
     }
 
-    args = args.map(function( v ){
-        return v ? ['\'' , v , '\''].join('') : v;
-    });
-
+    // args = args.map(function( v ){
+    //     return v ? ['\'' , v , '\''].join('') : v;
+    // });
+    
     opt.args = args.map(function(v){return v;});
 
-    args.push('\'Super\'');
+    args.push('Super');
+    args.push('arguments');
     if( reg.test(fnStr) ){
         fnBody = reg.exec(fnStr)[1];
-        tmpStr = ["new Function(", (args.toString() ? args.toString()+',' : "") , "fnBody)"].join('');
-        fn = eval(tmpStr);  // new Function('Super' , 'fnBody' , fnBody );
+        fn = new Function(...args , fnBody);
+        //tmpStr = ["new Function(", (args.toString() ? args.toString()+',' : "") , "fnBody)"].join('');
+        //fn = eval(tmpStr);  // new Function('Super' , 'fnBody' , fnBody );
+        console.log(fn);
     }
 
     return fn;

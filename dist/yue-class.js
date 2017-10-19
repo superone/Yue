@@ -8,6 +8,7 @@ const propsName = "__class_props__";
 const optionsName = "__class_options__";
 const initName = "__class_init__";
 const superName = "__class_super__";
+
 var clsNames = {
     propsName,
     optionsName,
@@ -18,6 +19,10 @@ var clsNames = {
 var Constructor = function () {
 
     function fn(props) {
+        return constructorFn.apply(this, arguments);
+    }
+
+    function constructorFn(props) {
         let o = props || {};
         let initFn = function () {};
 
@@ -245,6 +250,7 @@ var Private = function (prm, isBase, tools) {
 
             let args = inj.concat(res.injects);
             args.push(Super);
+            args.push(Arguments);
 
             let fnArgs = Array.prototype.slice.call(Arguments, 0);
 
@@ -262,10 +268,11 @@ var Private = function (prm, isBase, tools) {
                 return function () {
                     return fn.apply(opt.scope, fnInjects(arguments));
                 };
-            },
-            set() {
-                console.warn("Can't set method!");
             }
+            // ,
+            // set(){
+            //     console.warn("Can't set method!");
+            // }
         });
     } else {
         own[name] = obj;
@@ -280,14 +287,21 @@ var Private = function (prm, isBase, tools) {
  */
 function createMethod(opt) {
 
-    let target = opt,
-        tmpStr = "";
+    let target = opt;
     let fn = target.target;
-    let fnStr = fn.toString(),
+    let fnStr = fn.toString().trim(),
         fnBody = "",
         args = [];
+    //如果不是以匿名方式定义
+    if (fnStr.substring(0, 8) != 'function') {
+        fnStr = 'function' + fnStr.substring(fn.name.length);
+    }
+
     let reg = /(?:\/\*[\s\S]*?\*\/|\/\/.*?\r?\n|[^{])+\{([\s\S]*)\}$/;
     let regP = /^function\s*[^\(]*\(\s*([^\)]*)\)/m;
+    // if( !regP.test(fnStr) ){
+    //     regP = new RegExp(["^",fn.name,'\s*[^\(]*\(\s*([^\)]*)\)'].join('') , 'm');
+    // }
     args = fnStr.match(regP)[1].replace(/\s/g, '').split(',');
     let i = args.length;
 
@@ -295,19 +309,22 @@ function createMethod(opt) {
         if (args[i] === "") args.splice(i, 1);
     }
 
-    args = args.map(function (v) {
-        return v ? ['\'', v, '\''].join('') : v;
-    });
+    // args = args.map(function( v ){
+    //     return v ? ['\'' , v , '\''].join('') : v;
+    // });
 
     opt.args = args.map(function (v) {
         return v;
     });
 
-    args.push('\'Super\'');
+    args.push('Super');
+    args.push('arguments');
     if (reg.test(fnStr)) {
         fnBody = reg.exec(fnStr)[1];
-        tmpStr = ["new Function(", args.toString() ? args.toString() + ',' : "", "fnBody)"].join('');
-        fn = eval(tmpStr); // new Function('Super' , 'fnBody' , fnBody );
+        fn = new Function(...args, fnBody);
+        //tmpStr = ["new Function(", (args.toString() ? args.toString()+',' : "") , "fnBody)"].join('');
+        //fn = eval(tmpStr);  // new Function('Super' , 'fnBody' , fnBody );
+        console.log(fn);
     }
 
     return fn;
@@ -324,16 +341,16 @@ var Void = function (prm, isBase, tools) {
 
 var result = (function () {
     return {};
-})();
+});
 
 /*
 * key , value
 * return object for resolve the specifiers
 */
-function resOpt(key, value) {
+function Resolve(key, value) {
 
     let resed = util.resOptKey(key);
-    let opt = result;
+    let opt = result();
 
     let names = getNames(resed);
 
@@ -448,7 +465,7 @@ var specifiers = {
 
 
 function applySpecifier(keyStr, object, own, Cls) {
-    let resKey = resOpt(keyStr, object); //util.resOptKey( keyStr );
+    let resKey = Resolve(keyStr, object); //util.resOptKey( keyStr );
     let spec = specifiers;
 
     //应用specifiers
@@ -491,6 +508,8 @@ const flugin = function () {
     };
 }();
 
+function Include(options) {}
+
 function applyStatic(Cls) {
     let opt = Cls[optionsName] || {};
     let tmp;
@@ -503,15 +522,16 @@ function applyStatic(Cls) {
     }
 }
 
-const extend = function (props) {
+const Extend = function (props) {
     props = props || {};
     var prototype$$1 = prototype();
 
     var Class = Constructor();
 
-    Class.extend = extend;
+    Class.extend = Extend;
     Class.flugin = flugin;
-    Class[optionsName] = props;
+    Class.include = Include;
+    Class[optionsName] = props; //transProps( props ) ;
     Class[optionsName][superName] = this;
 
     applyStatic(Class);
@@ -522,11 +542,19 @@ const extend = function (props) {
     return Class;
 };
 
-let Class$1 = Constructor();
-Class$1.extend = extend;
-Class$1.flugin = flugin;
-Class$1.prototype = prototype();
-Class$1.prototype.constructor = Class$1;
+function constra() {
+    let Class = Constructor();
+
+    Class.extend = Extend;
+    Class.flugin = flugin;
+    Class.include = Include;
+    Class.prototype = prototype();
+    Class.prototype.constructor = Class;
+
+    return Class;
+}
+
+const Class$1 = constra();
 
 return Class$1;
 
