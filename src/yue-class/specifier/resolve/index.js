@@ -6,10 +6,10 @@ import { specifiers } from "../specifier";
 * key , value
 * return object for resolve the specifiers
 */
-export default function resOpt ( key , value ){
+export default function Resolve ( key , value ){
 
     let resed = util.resOptKey( key );
-    let opt = result;
+    let opt = result();
 
     let nameIndex = resed.length - 1;
     let name = resed[ nameIndex ];  //option name

@@ -1,5 +1,5 @@
 import util from "../util";
-import clsNames from "../classproname";
+import clsNames from "../methods/classproname";
 import Univer from "./specs/univer";
 import Static from "./specs/static";
 import Public from "./specs/public";

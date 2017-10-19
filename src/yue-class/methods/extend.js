@@ -1,9 +1,11 @@
 import Constructor from "./constructor";
 import Prototype from "./prototype";
-import Flugin from "./flugin/flugin";
-import { inArr , resOptKey } from "./util";
-import { getSpecifier , applySpecifier } from "./specifier/specifier";
+import Flugin from "../flugin/flugin";
+import Include from "./include";
+import { inArr , resOptKey } from "../util";
+import { getSpecifier , applySpecifier } from "../specifier/specifier";
 import { optionsName , superName } from "./classproname";
+import Resolve from "../specifier/resolve/index";
 
 
 function applyStatic( Cls ){
@@ -18,15 +20,16 @@ function applyStatic( Cls ){
     }
 }
 
-const extend = function( props ){
+const Extend = function( props ){
     props = props || {};
     var prototype = Prototype();
     
     var Class = Constructor();
 
-    Class.extend = extend;
+    Class.extend = Extend;
     Class.flugin = Flugin;
-    Class[ optionsName ] = props;
+    Class.include = Include;
+    Class[ optionsName ] = props;//transProps( props ) ;
     Class[ optionsName ][ superName ] = this;
 
     applyStatic( Class );
@@ -37,4 +40,15 @@ const extend = function( props ){
     return Class;
 }
 
-export default extend;
+function transProps( props ){
+    let newProps = {};
+
+    for(let k in props ){
+        if( props.hasOwnProperty(k) ){
+            newProps[ k ] = Resolve( k , props[k] );
+        }
+    }
+    return newProps;
+}
+
+export default Extend;
